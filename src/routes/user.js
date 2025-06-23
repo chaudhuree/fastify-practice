@@ -32,8 +32,15 @@ async function userRouter(fastify, options) {
   };
   // create user (with validation)
   fastify.post(
-    "/api/v1/users",
-    { schema: userSchema },
+    "/users",
+    { 
+      schema: {
+        ...userSchema,
+        description: 'Create a new user',
+        tags: ['users'],
+        summary: 'Creates a new user with the given information'
+      }
+    },
     async (request, reply) => {
       const { name, email, password } = request.body;
     //   console.log("bodydata", request.body);
@@ -54,7 +61,42 @@ async function userRouter(fastify, options) {
   );
 
   // get all users
-  fastify.get("/api/v1/users", async (request, reply) => {
+  fastify.get(
+    "/users", 
+    {
+      schema: {
+        description: 'Get all users',
+        tags: ['users'],
+        summary: 'Returns all users with optional name filter',
+        querystring: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Filter users by name' }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              message: { type: 'string' },
+              result: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    _id: { type: 'string' },
+                    name: { type: 'string' },
+                    email: { type: 'string' },
+                    password: { type: 'string' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
     const query = request.query;
     console.log(query)
     let filter = {}
@@ -72,7 +114,44 @@ async function userRouter(fastify, options) {
   });
 
   // get single user (with auth middleware)
-  fastify.get("/api/v1/users/:id", {preHandler: authHandler}, async (request, reply) => {
+  fastify.get(
+    "/users/:id", 
+    {
+      preHandler: authHandler,
+      schema: {
+        description: 'Get a single user by ID',
+        tags: ['users'],
+        summary: 'Returns a specific user by ID',
+        params: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: {
+              type: 'string',
+              description: 'User ID'
+            }
+          }
+        },
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              message: { type: 'string' },
+              result: {
+                type: 'object',
+                properties: {
+                  _id: { type: 'string' },
+                  name: { type: 'string' },
+                  email: { type: 'string' },
+                  password: { type: 'string' }
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    async (request, reply) => {
     console.log(request.params.id)
     const userCollection = fastify.mongo.db.collection("users");
     const id = new fastify.mongo.ObjectId(request.params.id)
